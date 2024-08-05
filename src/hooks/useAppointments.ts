@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, Timestamp, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { AppointmentModel } from "@devexpress/dx-react-scheduler";
+import { format } from "date-fns";
 
 interface FirestoreAppointment extends Omit<AppointmentModel, "startDate" | "endDate"> {
   startDate: Timestamp;
@@ -56,6 +57,12 @@ export const useAppointments = () => {
   const updateAppointment = useMutation({
     mutationFn: async ({ id, changes }: { id: string; changes: Partial<AppointmentModel> }) => {
       const updateData: Partial<FirestoreAppointment> = {};
+      const oldAppointment = data.find((appointment) => appointment.id === id);
+
+      if (oldAppointment?.rRule && format(oldAppointment.startDate as Date, "EEEEEE") !== format(changes.startDate as Date, "EEEEEE")) {
+        updateData.rRule = oldAppointment.rRule.replace(format(oldAppointment.startDate as Date, "EEEEEE").toUpperCase(), format(changes.startDate as Date, "EEEEEE").toUpperCase());
+      }
+
       if (changes.title !== undefined) updateData.title = changes.title;
       if (changes.startDate !== undefined) updateData.startDate = Timestamp.fromDate(changes.startDate as Date);
       if (changes.endDate !== undefined) updateData.endDate = Timestamp.fromDate(changes.endDate as Date);
